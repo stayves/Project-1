@@ -1,5 +1,5 @@
 {-
-	@title: stayves-oracle-name core
+	@title: stayves--name core
 	@author: Modified by stay-ves
 -}
 
