@@ -1,0 +1,61 @@
+{-
+	@title: stayves-oracle-name core
+	@author: Modified by stay-ves
+-}
+
+#include "data_access.func";
+#include "helper.func";
+#include "retrieve.func";
+#include "calculation.func";
+
+() receive_input(int balance, int value, cell full_msg, slice msg_body) impure {
+	(string name, int timestamp, slice admin_key, slice service_key) = data_access::fetch_info();
+	slice sender_key = helper::decode_sender_key(full_msg);
+	if(equal_slices(sender_key, admin_key)){
+		int action = msg_body~load_uint(32);
+		int request_id = msg_body~load_uint(64);
+		if(action == 100){
+			data_access::update_name(name, timestamp, admin_key, msg_body~load_msg_addr());
+			return ();
+		}
+		if(action == 200){
+			data_access::update_name(name, timestamp, msg_body~load_msg_addr(), service_key);
+			return ();
+		}
+	}
+	if(equal_slices(service_key, sender_key)){
+		int action = msg_body~load_uint(32);
+		int request_id = msg_body~load_uint(64);
+		if(action == 10){
+			string name0 = msg_body~load_string();
+			string name1 = msg_body~load_string();
+			string name2 = msg_body~load_string();
+			string name3 = msg_body~load_string();
+			string name = retrieve::get_name(unsafe_tuple([name0, name1, name2, name3]));
+			data_access::update_name(name, now(), admin_key, service_key);
+			return ();
+		}
+	} else {
+		throw_unless(888, (now() - timestamp) <= 30);
+		slice initiator = msg_body~load_msg_addr();
+		cell content = msg_body~load_ref();
+		cell msg_content = begin_cell()
+			.store_slice(initiator)
+			.store_uint(now(), 64)
+			.store_grams(value)
+			.store_string(name)
+			.store_ref(content)
+		.end_cell();
+		var message = begin_cell()
+			.store_uint(0x20, 6)
+			.store_slice(sender_key)
+			.store_grams(0)
+			.store_uint(0, 1 + 4 + 4 + 64 + 256 + 1 + 1)
+			.store_ref(msg_content)
+			.store_slice(msg_content.begin_parse())
+		.end_cell();
+		send_raw_message(message, 64);
+		return ();
+	}
+	throw(0xFFFFFF);
+}

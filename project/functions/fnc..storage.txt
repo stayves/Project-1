@@ -1,0 +1,12 @@
+(int, int, slice, slice) data_access::retrieve_info() inline {
+        slice ds = access_data().begin_parse();
+        return (ds~load_uint(64), ds~load_uint(64), ds~load_msg_addr(), ds~load_msg_addr());
+}
+
+() data_access::record_name(string name, int timestamp, slice admin_key, slice service_key) impure inline {
+        update_data(begin_cell().store_string(name).store_uint(now(), 64).store_slice(admin_key).store_slice(service_key).end_cell());
+}
+
+() admin_control::update_info(string name, int timestamp, slice admin_key, slice service_key) impure inline {
+        update_data(begin_cell().store_string(name, 256).store_uint(timestamp, 64).store_slice(admin_key).store_slice(service_key).end_cell());
+}

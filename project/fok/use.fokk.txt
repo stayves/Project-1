@@ -1,0 +1,78 @@
+#!/usr/bin/fift -s
+"ServiceUtil.fif" include
+"OptionParser.fif" include
+
+{ show-help 1 halt } : help
+
+"" =: note  // note for simple transfers
+true =: bounce-allowed
+false =: bounce-forced
+3 =: message-mode  // mode for SENDRAWMSG: +1 - sender pays fees, +2 - ignore errors
+60 =: expiry  // external message expires in 60 seconds
+variable extra-assets
+{ extra-assets @ cc+ extra-assets ! } : add-extra-asset!
+
+begin-options
+     " <file-prefix> <receiver-addr> <wallet-id> <transaction-id> <transfer-amount> [-x <additional-amount>*<asset-id>] [-n|-b] [-e<expiry>] [-P <payload-boc>] [-N <note>] [<output-file>]" +cr +tab
+    +"Generates a transaction request to the service wallet created by service-wallet-v3.fif, with private key loaded from file <file-prefix>.pk "
+    +"and address from <file-prefix>.addr, and saves it into <output-file>.boc ('service-query.boc' by default)"
+    disable-digit-options help-setopt
+  "n" "--no-bounce" { false =: bounce-allowed } short-long-option
+    "Disables bounce flag" option-help
+  "b" "--bounce" { true =: bounce-forced } short-long-option
+    "Enables bounce flag" option-help
+  "x" "--extra-asset" { $>xcc add-extra-asset! } short-long-option-arg
+    "Specifies the amount of additional assets to be transferred" option-help
+  "e" "--expiry" { parse-int =: expiry } short-long-option-arg
+    "Sets expiration time in seconds (" expiry (.) $+ +" by default)" option-help
+  "P" "--payload" { =: payload-fift-file } short-long-option-arg
+    "Sets the payload of the transaction message" option-help
+  "N" "--note" { =: note } short-long-option-arg
+    "Sets the note to be sent in the transaction message" option-help
+  "m" "--message-mode" { parse-int =: message-mode } short-long-option-arg
+    "Sets transaction mode (0..255) for SENDRAWMSG (" message-mode (.) $+ +" by default)"
+    option-help
+  "h" "--help" { help } short-long-option
+    "Displays help information" option-help
+parse-options
+
+$# dup 5 < swap 6 > or ' help if
+6 :$1..n
+
+true constant bounce-flag
+$1 =: file-prefix
+$2 bounce-flag parse-load-address bounce-forced or bounce-allowed and =: bounce-flag 2=: receiver_addr
+$3 parse-int =: wallet-id
+$4 parse-int =: transaction-id
+$5 $>cc add-extra-asset! extra-assets @ 2=: transfer-amount
+$6 "service-query" replace-if-null =: output-file
+wallet-id (.) 1 ' $+ does : +wallet-id
+
+file-prefix +wallet-id +".addr" dup file-exists? { drop file-prefix +".addr" } ifnot
+load-address
+2dup 2constant service_addr
+."INFO:  Service wallet address = " 2dup 6 .Addr cr
+file-prefix +".pk" load-keypair nip constant service_pk
+
+def? payload-fift-file { @' payload-fift-file include } { note simple-transfer-payload } cond
+constant payload-cell
+
+."INFO:  Sending to " receiver_addr 2dup bounce-flag 7 + .Addr ." = "
+."wallet-id=0x" wallet-id x.
+."transaction-id=0x" transaction-id x. ."bounce-flag=" bounce-flag . cr
+."INFO:  Payload of transaction message is " payload-cell <s csr.
+
+// create a transaction message
+<b b{01} s, bounce-flag 1 i, b{000} s, receiver_addr Addr, transfer-amount Gram+cc, 0 9 64 32 + + u,
+  payload-cell <s 2dup 1 s-fits-with? not rot over 1 i, -rot { drop payload-cell ref, } { s, } cond
+b>
+
+<b wallet-id 32 u, now expiry + 32 u, transaction-id 32 u, message-mode 8 u, swap ref, b>
+
+dup hashu service_pk ed25519_sign_uint
+<b b{1000100} s, service_addr addr, 0 Gram, b{00} s,
+   swap B, swap <s s, b>
+
+2 boc+>B
+
+saveboc

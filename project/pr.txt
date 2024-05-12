@@ -1,0 +1,7 @@
+contract:
+  data: fok/data.fokk
+  functions:
+    - functions/fnc.core
+    #- functions/simple-client.funcionts ;; for test
+  prove:
+    - prove/fnc.tesntet

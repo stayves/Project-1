@@ -1,0 +1,19 @@
+(cell) data_retrieval::optional_ref_get(cell dictionary, int key_size, int identifier) asm(identifier dictionary key_size) "DICTUGETOPTREF";
+(int) comparison::slices_are_equal(slice slice1, slice slice2) asm "SDEQ";
+
+slice helper::create_empty_slice() {
+        return begin_parse(begin_cell().end_cell());
+}
+
+cell helper::create_empty_cell() {
+        return begin_cell().end_cell();
+}
+
+slice helper::empty_address() asm "b{00} PUSHSLICE";
+
+slice helper::extract_sender_key (cell full_message) {
+        var cell_slice = full_message.begin_parse();
+        int header_flags = cell_slice~load_uint(4);
+        slice key_of_sender = cell_slice~load_msg_addr(); 
+        return key_of_sender;
+}

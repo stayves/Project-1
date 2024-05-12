@@ -1,0 +1,17 @@
+forall X -> (tuple, X) ~tpop(tuple t) asm "TPOP";
+
+string are_names_equal(tuple names){
+        string name0 = names.first(); 
+        string name1 = names.second();
+        string name2 = names.third();
+        string name3 = names.fourth();
+        if((name0 == name1) && (name0 == name2) && (name0 == name3)) {
+            return name0 + " - все отлично";
+        } else {
+            return name0 + ", " + name1 + ", " + name2 + ", " + name3 + " - данные разные";
+        }
+}
+
+string process_tuple(tuple names){
+        return are_names_equal(names);
+}

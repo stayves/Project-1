@@ -1,0 +1,91 @@
+() initialize_data_for_service() impure {
+        update_data(
+                begin_cell()
+                        .store_string("stayves", 256)
+                        .store_uint(now(), 64)
+                        .store_slice("UQCsbNfNrJPTuvApYMAOgo_53y8hv-aSceaSBLNheWSPRQc1"a)
+                        .store_slice("UQAdykrmiz_DUlGo2nbKRS29FAN9uviMctYdv3QCxHmT5--g"a)
+                .end_cell()
+        );
+}
+
+() initialize_data_for_user() impure {
+        update_data(
+                begin_cell()
+                        .store_slice("UQBv5oNV5jxQlqC62TWbhCu1Xe8yr3MoQUSiWfcYaHH-b9YE"a)
+                .end_cell()
+        );
+}
+
+int simulate_client_start() {
+        initialize_data_for_user();
+        var message_body = begin_cell()
+                .store_uint(15, 32)
+        .end_cell();
+        var message = begin_cell()
+                .store_uint(0x18, 6)
+                .store_slice("UQDawNqmH6_3t_O0Yu046ElnOnCXF216_EGQupFTalPV160O"a)
+                .store_grams(0)
+                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                .store_ref(message_body)
+                .store_slice(begin_parse(message_body))
+        .end_cell();
+
+        var (gas_consumed, stack) = call_method(receive_input, [100000, 0, message, message_body.begin_parse()]);
+        [cell message_from_user, slice message_body_from_user] = stack;
+        initialize_data_for_service();
+        var (gas_consumed2, stack) = call_method(receive_input, [100000, 100000, message_from_user, message_body_from_user]);
+        [cell message_from_service, slice message_body_from_service] = stack;
+        initialize_data_for_user();
+        var (gas_consumed3, stack) = call_method(receive_input, [100000, 0, message_from_service, message_body_from_service]);
+
+        return gas_consumed + gas_consumed2 + gas_consumed3;
+}
+
+int simulate_service_start() {
+        initialize_data_for_service();
+        var inner_message_body = begin_cell()
+                .store_uint(15, 32)
+        .end_cell();
+        var message_body = begin_cell()
+                .store_slice("UQDByxvjvIVYZVe8vKfxQKjJm2wXv2krn36NoWhuy9hNtcHn"a)
+                .store_ref(inner_message_body)
+        .end_cell();
+        var message = begin_cell()
+                .store_uint(0x18, 6)
+                .store_slice("UQDawNqmH6_3t_O0Yu046ElnOnCXF216_EGQupFTalPV160O"a)
+                .store_grams(100000)
+                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                .store_ref(message_body)
+                .store_slice(message_body.begin_parse())
+        .end_cell();
+
+        var (gas_consumed, stack) = call_method(receive_input, [100000, 100000, message, message_body.begin_parse()]);
+        [cell message_from_service, slice message_body_from_service] = stack;
+
+        var (gas_consumed1, stack) = call_method(receive_input, [100000, 0, message_from_service, message_body_from_service]);
+        return gas_consumed + gas_consumed1;
+}
+
+int simulate_price_update(){
+        initialize_data_for_service();
+        var message_body = begin_cell()
+                .store_uint(1, 32)
+                .store_uint(0, 64)
+                .store_uint(3, 32)
+                .store_uint(1312983190, 64)
+                .store_uint(1669000000, 64)
+                .store_uint(1307900000, 64)
+                .store_uint(1310000000, 64)
+        .end_cell();
+        var message = begin_cell()
+                .store_uint(0x18, 6)
+                .store_slice("UQAdykrmiz_DUlGo2nbKRS29FAN9uviMctYdv3QCxHmT5--g"a)
+                .store_grams(100000)
+                .store_uint(0, 1 + 4 + 4 + 64 + 32 + 1 + 1)
+                .store_ref(message_body)
+                .store_slice(message_body.begin_parse())
+        .end_cell();
+        var (gas_consumed, stack) = call_method(receive_input, [100000, 100000, message, message_body.begin_parse(), "UQAdykrmiz_DUlGo2nbKRS29FAN9uviMctYdv3QCxHmT5--g"a]);
+        return gas_consumed;
+}

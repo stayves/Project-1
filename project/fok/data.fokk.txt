@@ -1,0 +1,12 @@
+"ServiceUtil.fif" include
+"AssemblyUtil.fif" include
+
+"build/service_contract.pk" load-generate-keypair // generate key pair
+constant service_private_key  // save private to constant
+constant service_public_key // save public to constant
+
+<b
+  0 32 u, // transaction-id
+  0 32 u, // wallet-id
+  service_public_key B, // add bin public key to cell
+b>

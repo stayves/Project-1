@@ -1,0 +1,14 @@
+string get_current_name() method_id {
+        (string name, int timestamp, slice admin_key, slice service_key) = data_access::retrieve_info();
+        return name;
+}
+
+int get_recent_timestamp() method_id {
+        (string name, int timestamp, slice admin_key, slice service_key) = data_access::retrieve_info();
+        return timestamp;
+}
+
+slice get_service_key() method_id {
+        (string name, int timestamp, slice admin_key, slice service_key) = data_access::retrieve_info();
+        return service_key;
+}
